@@ -1,3 +1,5 @@
+**Download for Windows:** [QBTC Miner v1.0.0 (CUDA + OpenCL)](https://github.com/GodConsole/qbtc-miner-god-console/releases/tag/qbtc-miner)
+
 # QBTC miner fork: Stratum pool, CUDA and OpenCL
 
 A fork of the original **Quantum Bitcoin (QBTC)** node/miner by
