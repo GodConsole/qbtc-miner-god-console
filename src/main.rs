@@ -156,7 +156,7 @@ const FORK_GITHUB: &str = "https://github.com/GodConsole";
 const DONATE_ADDRESS: &str = "qbtc16udq46jjtmt42a46gazdnva8lavhd60lyttwmz8muujruu45fjuqpnkw9v";
 
 fn print_fork_banner() {
-    const TITLE: &str = "QBTC MINER FORK  -  SUPPORT THE AUTHOR";
+    const TITLE: &str = "QBTC MINER FORK  -  SUPPORT THE FORK";
     let rows: [(&str, &str); 4] = [
         ("Project", "QBTC miner: CUDA + OpenCL + Stratum pool client"),
         ("Fork by", FORK_AUTHOR),
