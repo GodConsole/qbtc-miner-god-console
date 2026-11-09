@@ -109,8 +109,13 @@ quantum-btc --bench-cuda 20 --gpu-api opencl
 | `QBTC_CL_INCLUDE_CPU=1` | Also list CPU OpenCL devices (PoCL, Intel CPU runtime); default: GPUs only |
 | `QBTC_POOL_DEBUG=1` | Log all pool traffic |
 | `QBTC_POOL_SUBMIT` | `num` (default), `hex`, `full`: `mining.submit` dialect |
-| `QBTC_POOL_TLS_INSECURE=1` | Accept an invalid pool certificate (unsafe) |
+| `QBTC_POOL_TLS_INSECURE=1` | Accept an invalid pool certificate (unsafe), Disable certificate check. Only for a pool you own or fully trust. See note below. |
 | `QBTC_POOL_ANY_USER=1` | Skip the payout address check (pools with other account names) |
+
+> **`QBTC_POOL_TLS_INSECURE=1`** turns off TLS certificate verification for `stratum+ssl://`.
+> The connection is still encrypted, but the miner no longer checks that the server really is
+> your pool. Use it only for your own local pool or a pool with a self-signed certificate that
+> you trust. **Never on public Wi-Fi.**
 
 ## Build
 
