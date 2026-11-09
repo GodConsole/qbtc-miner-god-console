@@ -32,7 +32,7 @@ At start-up the miner prints this table:
 
 ```
 +=================================================================================+
-|                      QBTC MINER FORK  -  SUPPORT THE AUTHOR                     |
+|                      QBTC MINER FORK  -  SUPPORT THE FORK                   |
 +=================================================================================+
 | Project       : QBTC miner: CUDA + OpenCL + Stratum pool client                 |
 | Fork by       : GodConsole                                                      |
@@ -47,8 +47,10 @@ At start-up the miner prints this table:
 | Fork by | [GodConsole](https://github.com/GodConsole) |
 | Donate (QBTC) | `qbtc16udq46jjtmt42a46gazdnva8lavhd60lyttwmz8muujruu45fjuqpnkw9v` |
 
-Firs author Q-Jack-core 
-https://github.com/Q-Jack-core/quantum-btc
+> **Fork support is voluntary and at the maintainer's discretion.** The donation address above
+> belongs to **GodConsole**, the fork maintainer — not to the original author (Q-Jack-core).
+> Nothing is required. The miner works the same whether you donate or not. Bug reports and pull
+> requests go to https://github.com/GodConsole (this fork), not to the upstream repository.
 
 ## Quick start (Windows)
 
@@ -136,7 +138,29 @@ Compared with [`Q-Jack-core/quantum-btc`](https://github.com/Q-Jack-core/quantum
 `src/stratum.rs` (new), `src/stats.rs` (new), `cuda/qbtc_sha256_miner.cl` (new),
 `cuda/qbtc_sha256_miner_opencl.c` (new), `cuda/qbtc_sha256_miner.cu`, the `.bat` launchers.
 
-All other original files stay unchanged.
+
+## Tested configurations
+
+This fork has been built and tested **only on Windows** with the following hardware:
+
+| Hardware | Backend | Status |
+|---|---|---|
+| NVIDIA RTX 2060 SUPER (Turing, 8 GB) | CUDA, OpenCL | ✅ tested, works |
+| NVIDIA RTX 2050 Mobile (Ampere, 4 GB) | CUDA, OpenCL | ✅ tested, works |
+| Intel Core i5-11260H — Intel UHD Graphics (Tiger Lake) | OpenCL | ✅ tested, works (low hashrate) |
+| Intel Core i5-11260H — CPU only | CPU | ✅ tested, works |
+
+Everything else — **AMD GPUs, other Intel GPUs, older NVIDIA cards (Pascal / Maxwell),
+Apple Silicon, Linux, macOS** — has **not** been tested. It may work; it may not. The
+maintainer has no access to that hardware, so no claim is made either way.
+
+If you run this fork on untested hardware, please open an issue with:
+- OS and version
+- GPU model and driver version
+- `--bench-cuda 20` output
+- whether the pool logs any `failed CPU re-verification` warnings
+
+Real-world reports are the only way this table will grow.
 
 ## License
 
