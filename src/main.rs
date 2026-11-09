@@ -156,7 +156,7 @@ const FORK_GITHUB: &str = "https://github.com/GodConsole";
 const DONATE_ADDRESS: &str = "qbtc16udq46jjtmt42a46gazdnva8lavhd60lyttwmz8muujruu45fjuqpnkw9v";
 
 fn print_fork_banner() {
-    const TITLE: &str = "QBTC MINER FORK  -  SUPPORT THE FORK";
+    const TITLE: &str = "QBTC MINER FORK  -  SUPPORT THE AUTHOR";
     let rows: [(&str, &str); 4] = [
         ("Project", "QBTC miner: CUDA + OpenCL + Stratum pool client"),
         ("Fork by", FORK_AUTHOR),
@@ -1466,7 +1466,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(a) = &autostart_address {
         quantum_btc::stats::STATS.set_pool("", a);
     }
-    let (cli_line_tx, cli_line_rx) = std::sync::mpsc::channel::<String>();
+    // Command lines arrive here from two places: the stdin reader below (second field true)
+    // and the solo auto-start timer (false).
+    let (cli_line_tx, cli_line_rx) = std::sync::mpsc::channel::<(String, bool)>();
+    // The command thread acknowledges every stdin line once it has fully finished it.
+    let (cli_ack_tx, cli_ack_rx) = std::sync::mpsc::channel::<()>();
     {
         let tx = cli_line_tx.clone();
         std::thread::spawn(move || {
@@ -1474,7 +1478,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             for l in stdin.lines() {
                 match l {
                     Ok(l) => {
-                        if tx.send(l).is_err() {
+                        if tx.send((l, true)).is_err() {
+                            break;
+                        }
+                        // Do not read the terminal again until the command is done. Interactive
+                        // prompts (wallet_gen, wallet_restore, transfer, ...) read the keyboard
+                        // themselves; a second reader blocked on stdin would steal their keys,
+                        // echo the password in clear text and leave the prompt hanging.
+                        if cli_ack_rx.recv().is_err() {
                             break;
                         }
                     }
@@ -1495,7 +1506,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if flag.load(Ordering::SeqCst) {
                     break;
                 }
-                if tx.send(format!("auto_mine start {}", addr)).is_err() {
+                if tx.send((format!("auto_mine start {}", addr), false)).is_err() {
                     break;
                 }
             }
@@ -1504,7 +1515,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(cli_line_tx);
 
     std::thread::spawn(move || {
-        for line_res in cli_line_rx.into_iter().map(|l| Ok::<String, std::io::Error>(l)) {
+        let mut pending_ack = false;
+        loop {
+            // The previous command, including any prompt it opened, is finished:
+            // now the stdin reader may read the next line.
+            if pending_ack {
+                let _ = cli_ack_tx.send(());
+            }
+            let (line, from_stdin) = match cli_line_rx.recv() {
+                Ok(v) => v,
+                Err(_) => break,
+            };
+            pending_ack = from_stdin;
+
             // : Attempt to upgrade Weak pointers. Exit gracefully if main sequence initiated teardown.
             let cli_storage = match cli_storage_weak.upgrade() {
                 Some(s) => s,
@@ -1515,10 +1538,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None => break,
             };
 
-            let line = match line_res {
-                Ok(l) => l,
-                Err(_) => break,
-            };
             let parts: Vec<&str> = line.trim().split_whitespace().collect();
             if parts.is_empty() {
                 continue;
