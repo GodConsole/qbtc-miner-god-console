@@ -14,8 +14,10 @@ This fork, maintained by **[GodConsole](https://github.com/GodConsole)**, adds:
   Intel and NVIDIA cards, next to the original CUDA backend.
 * Runtime statistics (`src/stats.rs`), `--bench-cuda`, `--max-power`, solo auto-start via `--address`.
 
-The miner has **no developer fee**. 100 % of every coinbase reward — pool or solo — goes to the
-address passed with `--address`. If this fork saves you time, a small donation is appreciated.
+**No developer fee in the miner.** 100 % of every coinbase reward — pool or solo — goes to
+the address passed with `--address`. Note that **pools charge their own fee** on top of this
+(typically 1–2 %, set by the pool operator, not by this miner); check your pool's published
+schedule before mining. If this fork saves you time, a small donation is appreciated.
 
 ## Credits
 
