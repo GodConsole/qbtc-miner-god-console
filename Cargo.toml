@@ -31,6 +31,7 @@ rocksdb = "0.21.0"
 # Stratum pool client: TLS transport (stratum+ssl://)
 native-tls = "0.2"
 tokio-native-tls = "0.3"
+libloading = "0.8"
 
 # =====================================================================
 # Aligned sha2 version with pbkdf2's digest requirements.

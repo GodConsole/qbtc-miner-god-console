@@ -152,10 +152,7 @@ fn build_cuda_kernel(out_dir: &str, cuda_path: &str) -> Result<(), String> {
     let mut cl_env = Vec::new();
     if windows {
         if let Some(t) = cc::windows_registry::find_tool(&target, "cl.exe") {
-            cl_env = t
-                .get_envs()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                .collect();
+            cl_env = t.env().to_vec();
             for (k, v) in &cl_env {
                 nvcc_cmd.env(k, v);
             }
@@ -348,6 +345,13 @@ const char* qbtc_cuda_device_name(int dev) {
 }
 
 void qbtc_cuda_shutdown(void) {}
+
+// FIX: was missing — gpu_miner.rs calls this from gpu_init_all().
+int qbtc_cuda_device_pci(int dev, char* buf, int n) {
+    (void)dev;
+    if (buf && n > 0) buf[0] = 0;
+    return -1;
+}
 "#;
     let stub = PathBuf::from(out_dir).join("qbtc_cuda_stub.c");
     fs::write(&stub, STUB).expect("could not write the CUDA stub");
@@ -478,6 +482,13 @@ int qbtc_cl_device_count(int* n) { if (n) *n = 0; return -1; }
 int qbtc_cl_init_device(int dev) { (void)dev; return -1; }
 const char* qbtc_cl_device_name(int dev) { (void)dev; return "OPENCL_NOT_AVAILABLE"; }
 void qbtc_cl_shutdown(void) {}
+
+// FIX: was missing — gpu_miner.rs calls this from gpu_init_all().
+int qbtc_cl_device_pci(int dev, char* buf, int n) {
+    (void)dev;
+    if (buf && n > 0) buf[0] = 0;
+    return -1;
+}
 "#;
     let stub = PathBuf::from(out_dir).join("qbtc_cl_stub.c");
     fs::write(&stub, STUB).expect("could not write OpenCL stub");
