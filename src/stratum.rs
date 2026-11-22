@@ -355,6 +355,7 @@ pub async fn run(url: String, user: String, password: String) -> Result<(), Box<
         _ = tokio::signal::ctrl_c() => {
             tracing::info!("[INFO] Pool: Ctrl+C received. Shutting down miner.");
             let _ = cmd_tx.try_send(MinerCommand::Shutdown);
+            crate::gpu_power::shutdown();
             Ok(())
         }
     }

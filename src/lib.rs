@@ -6,6 +6,7 @@ pub mod consensus;
 pub mod economics;
 pub mod miner;
 pub mod gpu_miner;
+pub mod gpu_power;
 pub mod stratum;
 pub mod stats;
 pub mod transaction;

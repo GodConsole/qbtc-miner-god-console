@@ -53,6 +53,7 @@ extern "C" {
     fn qbtc_cuda_init_device(dev: i32) -> i32;
     fn qbtc_cuda_device_name(dev: i32) -> *const std::os::raw::c_char;
     fn qbtc_cuda_shutdown();
+    fn qbtc_cuda_device_pci(dev: i32, buf: *mut std::os::raw::c_char, n: i32) -> i32;
 
     // OpenCL
     fn qbtc_cl_mine_on(device_id: i32, header_120: *const u8, target_u64: u64,
@@ -62,6 +63,7 @@ extern "C" {
     fn qbtc_cl_init_device(dev: i32) -> i32;
     fn qbtc_cl_device_name(dev: i32) -> *const std::os::raw::c_char;
     fn qbtc_cl_shutdown();
+    fn qbtc_cl_device_pci(dev: i32, buf: *mut std::os::raw::c_char, n: i32) -> i32;
 }
 
 fn be_count(be: GpuBackend, n: *mut i32) -> i32 {
@@ -86,7 +88,20 @@ fn be_name(be: GpuBackend, dev: i32) -> String {
         else { std::ffi::CStr::from_ptr(p).to_string_lossy().into_owned() }
     }
 }
+// PCI address of a device as reported by its own driver (None if unavailable).
+fn be_pci(be: GpuBackend, dev: i32) -> Option<String> {
+    let mut buf = [0 as std::os::raw::c_char; 64];
+    let rc = unsafe { match be {
+        GpuBackend::Cuda   => qbtc_cuda_device_pci(dev, buf.as_mut_ptr(), buf.len() as i32),
+        GpuBackend::OpenCl => qbtc_cl_device_pci(dev, buf.as_mut_ptr(), buf.len() as i32),
+    } };
+    if rc != 0 { return None; }
+    let s = unsafe { std::ffi::CStr::from_ptr(buf.as_ptr()) }.to_string_lossy().trim().to_string();
+    if s.is_empty() { None } else { Some(s) }
+}
+
 pub fn be_shutdown(be: GpuBackend) {
+    crate::gpu_power::shutdown(); // restore original GPU power limits
     unsafe { match be {
         GpuBackend::Cuda   => qbtc_cuda_shutdown(),
         GpuBackend::OpenCl => qbtc_cl_shutdown(),
@@ -157,6 +172,14 @@ pub fn gpu_init_all(backend: GpuBackend) -> Vec<i32> {
             gpu_warn!("[WARN] Miner: {:?} device {} init failed", backend, dev);
         }
     }
+    // --max-power: keep only the GPUs whose limit can be enforced and verified.
+    let ready = if ready.is_empty() {
+        ready
+    } else {
+        let refs: Vec<(i32, String, Option<String>)> =
+            ready.iter().map(|&d| (d, be_name(backend, d), be_pci(backend, d))).collect();
+        crate::gpu_power::enforce(backend, refs)
+    };
     if ready.is_empty() {
         gpu_warn!("[WARN] Miner: no {:?} device initialized", backend);
     } else {
@@ -300,9 +323,15 @@ pub fn run_gpu_mine_loop_on(
         print_reference_hash_for_debug(&header);
     }
     let mut consecutive_failures: u32 = 0;
+    // --max-power software governor (None when no limit is configured).
+    let throttle = crate::gpu_power::throttle(backend, device_id);
+    let mut last_batch = std::time::Duration::ZERO;
     let verbose_progress = std::env::var_os("QBTC_CUDA_DEBUG").is_some();
     loop {
         if stop_rx.try_recv().is_ok() { stop.stop(); break; }
+        if let Some(t) = &throttle {
+            if !t.wait(&stop_rx, last_batch) { stop.stop(); break; }
+        }
         let batch_started = std::time::Instant::now();
         if let Some(max) = gpu_data.nonce_max {
             if start_nonce > max {
@@ -311,6 +340,7 @@ pub fn run_gpu_mine_loop_on(
         }
         let scan_result = gpu_scan_on(backend, device_id, &header, gpu_data.compare_target, start_nonce, batch_size, &mut stop);
         let batch_elapsed = batch_started.elapsed();
+        last_batch = batch_elapsed;
         match scan_result {
             GpuScanResult::Found(winning_nonce) => {
                 consecutive_failures = 0;
